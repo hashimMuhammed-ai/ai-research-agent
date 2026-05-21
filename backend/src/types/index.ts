@@ -55,6 +55,20 @@ export interface ResearchJobResult {
   report: string;
 }
 
+export interface SearchResultItem {
+  title: string;
+  snippet: string;
+  url: string;
+}
+
+export interface AgentChainData {
+  topic: string;
+  searchResults: SearchResultItem[];
+  summary?: string;
+  verifiedSummary?: string;
+  report?: string;
+}
+
 
 export interface ApiResponse<T = null> {
   success: boolean;

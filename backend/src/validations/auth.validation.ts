@@ -36,7 +36,7 @@ export const loginSchema = z.object({
 });
 
 
-// Infer TypeScript types directly from Zod schemas
+// Automatically generates TypeScript type FROM schema.
 // This means one schema drives both runtime validation AND types
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
