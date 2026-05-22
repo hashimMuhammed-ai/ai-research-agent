@@ -26,7 +26,7 @@ export const researchController = {
 
  
   async getJobStatus(req: AuthRequest, res: Response): Promise<void> {
-    const { jobId } = req.params;
+    const jobId  = req.params.jobId as string;
     const userId = req.user!._id.toString();
 
     const report = await researchService.getReportByJobId(jobId, userId);
@@ -60,7 +60,7 @@ export const researchController = {
 
 
   async getFullReport(req: AuthRequest, res: Response): Promise<void> {
-    const { reportId } = req.params;
+    const reportId = req.params.reportId as string;
     const userId = req.user!._id.toString();
 
     const report = await researchService.getFullReport(reportId, userId);

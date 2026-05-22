@@ -16,7 +16,7 @@ class GeminiService {
     const genAI = new GoogleGenerativeAI(apiKey);
 
     this.model = genAI.getGenerativeModel({
-      model: process.env.GEMINI_MODEL || "gemini-1.5-flash",
+      model: process.env.GEMINI_MODEL || "gemini-2.5-flash",
     });
   }
 

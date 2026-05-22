@@ -75,3 +75,38 @@ export interface ApiResponse<T = null> {
   message: string;
   data?: T;
 }
+
+
+
+export interface ServerToClientEvents {
+  "agent:progress": (data: AgentProgressEvent) => void;
+  "job:completed":  (data: JobCompletedEvent)  => void;
+  "job:failed":     (data: JobFailedEvent)      => void;
+}
+
+
+export interface ClientToServerEvents {
+  "job:subscribe": (jobId: string) => void;
+}
+
+export interface AgentProgressEvent {
+  jobId:  string;
+  topic:  string;
+  agent:  AgentName;
+  status: "active" | "completed" | "failed";
+  completedAgents: number;  
+  totalAgents: number;   
+}
+
+export interface JobCompletedEvent {
+  jobId:    string;
+  topic:    string;
+  reportId: string;
+  report:   string;
+}
+
+export interface JobFailedEvent {
+  jobId:  string;
+  topic:  string;
+  error:  string;
+}
