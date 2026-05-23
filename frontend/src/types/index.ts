@@ -23,7 +23,18 @@ export interface JobFailedEvent {
 }
 
 export interface AgentState {
-  name:   AgentName;
-  label:  string;
-  status: "idle" | "active" | "completed" | "failed";
+  name:      AgentName;
+  label:     string;
+  icon:      string;
+  status:    "idle" | "active" | "completed" | "failed";
+  startedAt: number | null;   
+  duration:  number | null;
+}
+
+export interface Report {
+  _id:       string;
+  topic:     string;
+  status:    "pending" | "processing" | "completed" | "failed";
+  jobId:     string;
+  createdAt: string;
 }

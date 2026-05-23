@@ -1,26 +1,16 @@
 import { useState } from "react";
-import { authApi, researchApi } from "./api/research.api";
-import { useResearchSocket }    from "./hooks/useResearchSocket";
-import { ResearchForm }         from "./components/ResearchForm";
-import { AgentPipeline }        from "./components/AgentPipeline";
-import { ReportDisplay }        from "./components/ReportDisplay";
+import { authApi }       from "./api/research.api";
+import { ResearchPage }  from "./pages/ResearchPage";
+import { HistoryPage }   from "./pages/HistoryPage";
+
+type Page = "research" | "history";
 
 export default function App() {
   const [token, setToken]       = useState(localStorage.getItem("token") || "");
   const [email, setEmail]       = useState("");
   const [password, setPassword] = useState("");
   const [authError, setAuthError] = useState("");
-
-  const {
-    agents,
-    report,
-    error,
-    progress,
-    jobStatus,
-    subscribeToJob,
-    resetState,
-  } = useResearchSocket();
-
+  const [activePage, setActivePage] = useState<Page>("research");
 
   const handleLogin = async () => {
     try {
@@ -28,7 +18,7 @@ export default function App() {
       const res = await authApi.login(email, password);
       localStorage.setItem("token", res.data.token);
       setToken(res.data.token);
-      window.location.reload(); // reconnect socket with new token
+      window.location.reload();
     } catch {
       setAuthError("Invalid email or password");
     }
@@ -40,41 +30,38 @@ export default function App() {
   };
 
 
-  const handleResearch = async (topic: string) => {
-    resetState();
-    try {
-      const res = await researchApi.createJob(topic);
-      subscribeToJob(res.data.jobId);
-    } catch {
-      alert("Failed to start research job — check your token");
-    }
-  };
-
-
   if (!token) {
     return (
       <div style={{
-        minHeight: "100vh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: "#f9fafb",
+        minHeight:       "100vh",
+        display:         "flex",
+        alignItems:      "center",
+        justifyContent:  "center",
+        backgroundColor: "#f3f4f6",
       }}>
         <div style={{
           backgroundColor: "white",
-          padding: "2rem",
-          borderRadius: "12px",
-          boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-          width: "360px",
+          padding:         "2rem",
+          borderRadius:    "14px",
+          boxShadow:       "0 4px 20px rgba(0,0,0,0.08)",
+          width:           "360px",
         }}>
-          <h2 style={{ margin: "0 0 1.5rem", textAlign: "center" }}>
-            🔬 AI Research Agent
-          </h2>
+          <div style={{ textAlign: "center", marginBottom: "1.5rem" }}>
+            <div style={{ fontSize: "2.5rem" }}>🔬</div>
+            <h2 style={{ margin: "0.5rem 0 0", fontSize: "1.3rem", fontWeight: 700 }}>
+              AI Research Agent
+            </h2>
+            <p style={{ color: "#6b7280", fontSize: "0.85rem", margin: "0.3rem 0 0" }}>
+              Multi-agent powered research
+            </p>
+          </div>
+
           <input
             type="email"
             placeholder="Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleLogin()}
             style={inputStyle}
           />
           <input
@@ -82,25 +69,22 @@ export default function App() {
             placeholder="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleLogin()}
             style={{ ...inputStyle, marginTop: "0.75rem" }}
           />
+
           {authError && (
-            <p style={{ color: "red", fontSize: "0.85rem", margin: "0.5rem 0" }}>
+            <p style={{ color: "#ef4444", fontSize: "0.82rem", margin: "0.5rem 0 0" }}>
               {authError}
             </p>
           )}
-          <button
-            onClick={handleLogin}
-            style={{
-              ...buttonStyle,
-              width: "100%",
-              marginTop: "1rem",
-            }}
-          >
+
+          <button onClick={handleLogin} style={{ ...primaryBtn, width: "100%", marginTop: "1rem" }}>
             Login
           </button>
-          <p style={{ textAlign: "center", fontSize: "0.8rem", color: "#6b7280", marginTop: "1rem" }}>
-            Register via Postman first, then login here.
+
+          <p style={{ textAlign: "center", fontSize: "0.78rem", color: "#9ca3af", marginTop: "1rem" }}>
+            Register via Postman, then login here.
           </p>
         </div>
       </div>
@@ -109,122 +93,85 @@ export default function App() {
 
 
   return (
-    <div style={{
-      minHeight: "100vh",
-      backgroundColor: "#f9fafb",
-      padding: "2rem",
-    }}>
-      <div style={{ maxWidth: "900px", margin: "0 auto" }}>
+    <div style={{ minHeight: "100vh", backgroundColor: "#f3f4f6" }}>
 
-        {/* Header */}
-        <div style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: "2rem",
-        }}>
-          <h1 style={{ margin: 0, fontSize: "1.5rem", fontWeight: 700 }}>
+      <nav style={{
+        backgroundColor: "white",
+        borderBottom:    "1px solid #e5e7eb",
+        padding:         "0 2rem",
+        height:          "60px",
+        display:         "flex",
+        alignItems:      "center",
+        justifyContent:  "space-between",
+        position:        "sticky",
+        top:             0,
+        zIndex:          100,
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "2rem" }}>
+          <span style={{ fontWeight: 700, fontSize: "1rem" }}>
             🔬 AI Research Agent
-          </h1>
-          <button onClick={handleLogout} style={outlineButtonStyle}>
-            Logout
-          </button>
+          </span>
+
+          {(["research", "history"] as Page[]).map((page) => (
+            <button
+              key={page}
+              onClick={() => setActivePage(page)}
+              style={{
+                background:    "none",
+                border:        "none",
+                cursor:        "pointer",
+                fontSize:      "0.9rem",
+                fontWeight:    activePage === page ? 600 : 400,
+                color:         activePage === page ? "#4f46e5" : "#6b7280",
+                borderBottom:  activePage === page ? "2px solid #4f46e5" : "2px solid transparent",
+                padding:       "0.25rem 0",
+                textTransform: "capitalize",
+              }}
+            >
+              {page === "research" ? "🔬 Research" : "📚 History"}
+            </button>
+          ))}
         </div>
 
-        {/* Research Form */}
-        <div style={cardStyle}>
-          <ResearchForm
-            onSubmit={handleResearch}
-            isLoading={jobStatus === "queued" || jobStatus === "processing"}
-          />
+        <button onClick={handleLogout} style={outlineBtn}>
+          Logout
+        </button>
+      </nav>
 
-          {/* Status badge */}
-          {jobStatus !== "idle" && (
-            <div style={{
-              display: "inline-block",
-              padding: "0.3rem 0.75rem",
-              borderRadius: "9999px",
-              fontSize: "0.8rem",
-              fontWeight: 600,
-              marginBottom: "1.5rem",
-              backgroundColor:
-                jobStatus === "completed" ? "#ecfdf5" :
-                jobStatus === "failed"    ? "#fef2f2" :
-                                           "#eff6ff",
-              color:
-                jobStatus === "completed" ? "#10b981" :
-                jobStatus === "failed"    ? "#ef4444" :
-                                           "#3b82f6",
-            }}>
-              {jobStatus === "queued"     && "⏳ Job queued..."}
-              {jobStatus === "processing" && `🔄 Processing... ${progress}%`}
-              {jobStatus === "completed"  && "✅ Report ready!"}
-              {jobStatus === "failed"     && "❌ Job failed"}
-            </div>
-          )}
-
-          {/* Agent pipeline visualization */}
-          {jobStatus !== "idle" && (
-            <AgentPipeline agents={agents} progress={progress} />
-          )}
-
-          {/* Error */}
-          {error && (
-            <div style={{
-              padding: "1rem",
-              backgroundColor: "#fef2f2",
-              border: "1px solid #fecaca",
-              borderRadius: "8px",
-              color: "#ef4444",
-              fontSize: "0.9rem",
-            }}>
-              ❌ {error}
-            </div>
-          )}
-        </div>
-
-        {/* Report */}
-        {report && <ReportDisplay report={report} />}
-      </div>
+      <main style={{ maxWidth: "960px", margin: "0 auto", padding: "2rem" }}>
+        {activePage === "research" ? <ResearchPage /> : <HistoryPage />}
+      </main>
     </div>
   );
 }
 
 
 const inputStyle: React.CSSProperties = {
-  width: "100%",
-  padding: "0.65rem 0.9rem",
-  fontSize: "0.95rem",
-  border: "1px solid #d1d5db",
+  width:        "100%",
+  padding:      "0.65rem 0.9rem",
+  fontSize:     "0.95rem",
+  border:       "1px solid #d1d5db",
   borderRadius: "8px",
-  boxSizing: "border-box",
-  outline: "none",
+  boxSizing:    "border-box",
+  outline:      "none",
 };
 
-const buttonStyle: React.CSSProperties = {
-  padding: "0.65rem 1.25rem",
-  fontSize: "0.95rem",
+const primaryBtn: React.CSSProperties = {
+  padding:         "0.65rem 1.25rem",
+  fontSize:        "0.95rem",
   backgroundColor: "#4f46e5",
-  color: "white",
-  border: "none",
-  borderRadius: "8px",
-  cursor: "pointer",
+  color:           "white",
+  border:          "none",
+  borderRadius:    "8px",
+  cursor:          "pointer",
 };
 
-const outlineButtonStyle: React.CSSProperties = {
-  padding: "0.5rem 1rem",
-  fontSize: "0.9rem",
+const outlineBtn: React.CSSProperties = {
+  padding:         "0.45rem 1rem",
+  fontSize:        "0.88rem",
   backgroundColor: "transparent",
-  color: "#4f46e5",
-  border: "1px solid #4f46e5",
-  borderRadius: "8px",
-  cursor: "pointer",
-};
-
-const cardStyle: React.CSSProperties = {
-  backgroundColor: "white",
-  borderRadius: "12px",
-  padding: "1.5rem",
-  boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-  marginBottom: "1.5rem",
+  color:           "#4f46e5",
+  border:          "1px solid #4f46e5",
+  borderRadius:    "8px",
+  cursor:          "pointer",
 };

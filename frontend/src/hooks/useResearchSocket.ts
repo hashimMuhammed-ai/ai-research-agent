@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { io, Socket } from "socket.io-client";
-import type {
+import type{
   AgentName,
   AgentState,
   AgentProgressEvent,
@@ -8,24 +8,30 @@ import type {
   JobFailedEvent,
 } from "../types";
 
-const AGENT_LABELS: Record<AgentName, string> = {
-  searcher:    "🔍 Web Searcher",
-  summarizer:  "📝 Summarizer",
-  factChecker: "🔎 Fact Checker",
-  writer:      "✍️  Report Writer",
+export const AGENT_META: Record<AgentName, { label: string; icon: string }> = {
+  searcher:    { label: "Web Searcher",  icon: "🔍" },
+  summarizer:  { label: "Summarizer",   icon: "📝" },
+  factChecker: { label: "Fact Checker", icon: "🔎" },
+  writer:      { label: "Report Writer",icon: "✍️"  },
 };
 
 const DEFAULT_AGENTS: AgentState[] = (
-  Object.keys(AGENT_LABELS) as AgentName[]
-).map((name) => ({ name, label: AGENT_LABELS[name], status: "idle" }));
-
+  Object.keys(AGENT_META) as AgentName[]
+).map((name) => ({
+  name,
+  label:     AGENT_META[name].label,
+  icon:      AGENT_META[name].icon,
+  status:    "idle",
+  startedAt: null,
+  duration:  null,
+}));
 
 export const useResearchSocket = () => {
   const socketRef = useRef<Socket | null>(null);
 
-  const [agents, setAgents]   = useState<AgentState[]>(DEFAULT_AGENTS);
-  const [report, setReport]   = useState<string>("");
-  const [error, setError]     = useState<string>("");
+  const [agents, setAgents]     = useState<AgentState[]>(DEFAULT_AGENTS);
+  const [report, setReport]     = useState("");
+  const [error, setError]       = useState("");
   const [progress, setProgress] = useState(0);
   const [jobStatus, setJobStatus] = useState<
     "idle" | "queued" | "processing" | "completed" | "failed"
@@ -39,35 +45,36 @@ export const useResearchSocket = () => {
       auth: { token },
       transports: ["websocket"],
     });
-
     socketRef.current = socket;
 
-    socket.on("connect", () => {
-      console.log("✅ Socket connected:", socket.id);
-    });
-
     socket.on("connect_error", (err) => {
-      console.error("❌ Socket connection error:", err.message);
-      setError("Real-time connection failed — check your login");
+      setError(`Connection failed: ${err.message}`);
     });
 
     socket.on("agent:progress", (data: AgentProgressEvent) => {
       setJobStatus("processing");
 
       setAgents((prev) =>
-        prev.map((a) =>
-          a.name === data.agent
-            ? { ...a, status: data.status }
-            : a
-        )
+        prev.map((a) => {
+          if (a.name !== data.agent) return a;
+
+          if (data.status === "active") {
+            return { ...a, status: "active", startedAt: Date.now(), duration: null };
+          }
+
+          if (data.status === "completed") {
+            const duration = a.startedAt ? Date.now() - a.startedAt : null;
+            return { ...a, status: "completed", duration };
+          }
+
+          return { ...a, status: data.status };
+        })
       );
 
       const pct =
         data.status === "completed"
           ? Math.round((data.completedAgents / data.totalAgents) * 100)
-          : Math.round(
-              ((data.completedAgents + 0.5) / data.totalAgents) * 100
-            );
+          : Math.round(((data.completedAgents + 0.5) / data.totalAgents) * 100);
       setProgress(pct);
     });
 
@@ -82,13 +89,7 @@ export const useResearchSocket = () => {
       setError(data.error);
     });
 
-    socket.on("disconnect", () => {
-      console.log("Socket disconnected");
-    });
-
-    return () => {
-      socket.disconnect();
-    };
+    return () => { socket.disconnect(); };
   }, []);
 
   const resetState = () => {
@@ -103,13 +104,5 @@ export const useResearchSocket = () => {
     socketRef.current?.emit("job:subscribe", jobId);
   };
 
-  return {
-    agents,
-    report,
-    error,
-    progress,
-    jobStatus,
-    subscribeToJob,
-    resetState,
-  };
+  return { agents, report, error, progress, jobStatus, subscribeToJob, resetState };
 };

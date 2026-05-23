@@ -30,4 +30,8 @@ export const researchApi = {
     const res = await api.get("/research/reports");
     return res.data;
   },
+  getFullReport: async (reportId: string) => {
+    const res = await api.get(`/research/reports/${reportId}`);
+    return res.data;
+  },
 };
