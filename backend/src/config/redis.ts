@@ -1,17 +1,20 @@
 import IORedis from "ioredis";
 import logger from "../utils/logger";
 
+const redisHost = process.env.REDIS_HOST || "localhost";
+const useTls = process.env.REDIS_TLS === "true" || redisHost.endsWith(".upstash.io");
 
-export const redisConnection = new IORedis({
-  host: process.env.REDIS_HOST || "localhost",
-  port: Number(process.env.REDIS_PORT) || 6379,
-  maxRetriesPerRequest: null, // Required by BullMQ — do not remove
-});
+export const redisConnectionOptions = {
+  host:                 redisHost,
+  port:                 Number(process.env.REDIS_PORT) || 6379,
+  password:             process.env.REDIS_PASSWORD || undefined,
+  tls:                  useTls ? {} : undefined,
+  maxRetriesPerRequest: null,
+};
 
-redisConnection.on("connect", () =>
-  logger.info("Redis connected")
-);
+export const redisConnection = new IORedis(redisConnectionOptions);
 
-redisConnection.on("error", (err: Error) =>
-  logger.error("Redis connection error", { error: err.message })
+redisConnection.on("connect", () => logger.info("Redis connected"));
+redisConnection.on("error",   (err: Error) =>
+  logger.error("Redis error", { error: err.message })
 );

@@ -123,15 +123,48 @@ researchWorker.on("failed", async (job: Job | undefined, err: Error) => {
   logger.error("Job failed", { jobId: job?.id, error: err.message });
 
   if (job?.id) {
+    const fullError = err?.message || String(err);
+
+    // Produce a short, user-friendly error for clients while keeping
+    // the full error in server-side storage/logs.
+    const shortError = (() => {
+      try {
+        const msg = fullError.replace(/\s+/g, " ").trim();
+
+        // If there's an explicit retry time, surface that first
+        const retryMatch = msg.match(/retry(?:ing)?(?: in)?\s*([0-9]+(?:\.[0-9]+)?)s/i);
+        if (retryMatch) {
+          return `Groq API error: Quota exceeded — retry in ${retryMatch[1]}s`;
+        }
+
+        // Common quota wording
+        if (/quota.*exceed/i.test(msg) || /quota exceeded/i.test(msg)) {
+          return "Groq API error: Quota exceeded — please try again later";
+        }
+
+        // Prefer the Groq API short prefix if present
+        const genMatch = msg.match(/(Groq API error:[^\[]*?)(?:\[|$)/i);
+        if (genMatch) return genMatch[1].trim();
+
+        // Fallback: return the first sentence (trimmed)
+        const firstSentence = msg.split(/\. |\n/)[0];
+        return firstSentence.length > 200 ? firstSentence.slice(0, 200) + "…" : firstSentence;
+      } catch {
+        return "An unexpected error occurred";
+      }
+    })();
+
+    // Store full error in DB for debugging
     await ReportModel.findOneAndUpdate(
       { jobId: job.id },
-      { status: "failed", error: err.message }
+      { status: "failed", error: fullError }
     );
 
+    // Emit concise error to client
     socketService.emitJobFailed(job.data.userId, {
       jobId: job.id,
       topic: job.data.topic,
-      error: err.message,
+      error: shortError,
     });
   }
 });

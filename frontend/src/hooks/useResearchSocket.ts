@@ -41,7 +41,8 @@ export const useResearchSocket = () => {
     const token = localStorage.getItem("token");
     if (!token) return;
 
-    const socket = io("http://localhost:5000", {
+    const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || "http://localhost:5000";
+    const socket = io(SOCKET_URL, {
       auth: { token },
       transports: ["websocket"],
     });
@@ -59,6 +60,8 @@ export const useResearchSocket = () => {
           if (a.name !== data.agent) return a;
 
           if (data.status === "active") {
+            // Clear any previous error when an agent becomes active (retry)
+            setError("");
             return { ...a, status: "active", startedAt: Date.now(), duration: null };
           }
 
@@ -82,11 +85,22 @@ export const useResearchSocket = () => {
       setJobStatus("completed");
       setReport(data.report);
       setProgress(100);
+      // Clear any prior error when job completes successfully
+      setError("");
     });
 
     socket.on("job:failed", (data: JobFailedEvent) => {
       setJobStatus("failed");
       setError(data.error);
+
+      // Ensure any agent still marked as active is shown as failed in the UI
+      setAgents((prev) =>
+        prev.map((a) =>
+          a.status === "active"
+            ? { ...a, status: "failed", duration: a.startedAt ? Date.now() - a.startedAt : a.duration }
+            : a
+        )
+      );
     });
 
     return () => { socket.disconnect(); };
@@ -100,9 +114,13 @@ export const useResearchSocket = () => {
     setJobStatus("idle");
   };
 
+  const queueJob = () => {
+    setJobStatus("queued");
+  };
+
   const subscribeToJob = (jobId: string) => {
     socketRef.current?.emit("job:subscribe", jobId);
   };
 
-  return { agents, report, error, progress, jobStatus, subscribeToJob, resetState };
+  return { agents, report, error, progress, jobStatus, subscribeToJob, resetState, queueJob };
 };

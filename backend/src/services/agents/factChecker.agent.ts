@@ -1,4 +1,4 @@
-import { geminiService } from "../gemini.service";
+import { groqService } from "../groq.service";
 import { AgentChainData } from "../../types";
 import { AppError } from "../../utils/AppError";
 import logger from "../../utils/logger";
@@ -51,7 +51,7 @@ export const factCheckerAgent = async (
   logger.info("Fact checker agent running", { topic });
 
   const prompt = buildFactCheckerPrompt(topic, searchResults, summary);
-  const verifiedSummary = await geminiService.generate(prompt);
+  const verifiedSummary = await groqService.generate(prompt);
 
   logger.info("Fact checker agent done", { topic });
 

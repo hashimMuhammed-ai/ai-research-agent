@@ -1,4 +1,4 @@
-import { geminiService } from "../gemini.service";
+import { groqService } from "../groq.service";
 import { AgentChainData } from "../../types";
 import { AppError } from "../../utils/AppError";
 import logger from "../../utils/logger";
@@ -46,7 +46,7 @@ export const summarizerAgent = async (
   logger.info("Summarizer agent running", { topic });
 
   const prompt = buildSummarizerPrompt(topic, searchResults);
-  const summary = await geminiService.generate(prompt);
+  const summary = await groqService.generate(prompt);
 
   logger.info("Summarizer agent done", { topic });
 

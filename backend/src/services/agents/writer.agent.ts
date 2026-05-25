@@ -1,4 +1,4 @@
-import { geminiService } from "../gemini.service";
+import { groqService } from "../groq.service";
 import { AgentChainData } from "../../types";
 import { AppError } from "../../utils/AppError";
 import logger from "../../utils/logger";
@@ -73,7 +73,7 @@ export const writerAgent = async (
   logger.info("Writer agent running", { topic });
 
   const prompt = buildWriterPrompt(topic, verifiedSummary, searchResults);
-  const report = await geminiService.generate(prompt);
+  const report = await groqService.generate(prompt);
 
   logger.info("Writer agent done", { topic });
 

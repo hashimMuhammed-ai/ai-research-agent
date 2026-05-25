@@ -1,12 +1,10 @@
-import { useState } from "react";
-
 interface Props {
-  onSubmit: (topic: string) => void;
+  onSubmit:  (topic: string) => void;
   isLoading: boolean;
 }
 
 export const ResearchForm = ({ onSubmit, isLoading }: Props) => {
-  const [topic, setTopic] = useState("");
+  let topic = "";
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -14,39 +12,64 @@ export const ResearchForm = ({ onSubmit, isLoading }: Props) => {
   };
 
   return (
-    <form onSubmit={handleSubmit} style={{ marginBottom: "2rem" }}>
-      <div style={{ display: "flex", gap: "1rem" }}>
-        <input
-          type="text"
-          value={topic}
-          onChange={(e) => setTopic(e.target.value)}
-          placeholder="Enter a research topic (e.g. Quantum Computing)"
-          disabled={isLoading}
-          style={{
-            flex: 1,
-            padding: "0.75rem 1rem",
-            fontSize: "1rem",
-            borderRadius: "8px",
-            border: "1px solid #ccc",
-            outline: "none",
-          }}
-        />
-        <button
-          type="submit"
-          disabled={isLoading || !topic.trim()}
-          style={{
-            padding: "0.75rem 1.5rem",
-            fontSize: "1rem",
-            backgroundColor: isLoading ? "#ccc" : "#4f46e5",
-            color: "white",
-            border: "none",
-            borderRadius: "8px",
-            cursor: isLoading ? "not-allowed" : "pointer",
-          }}
-        >
-          {isLoading ? "Researching..." : "Research"}
-        </button>
-      </div>
-    </form>
+    <>
+      <style>{`
+        .research-form { margin-bottom: 1.25rem; }
+        .form-row {
+          display: flex;
+          gap: 0.75rem;
+        }
+        .topic-input {
+          flex: 1;
+          padding: 0.75rem 1rem;
+          font-size: 1rem;
+          border-radius: 8px;
+          border: 1px solid #d1d5db;
+          outline: none;
+          min-width: 0;        /* prevents flex overflow on mobile */
+        }
+        .topic-input:focus { border-color: #4f46e5; }
+        .submit-btn {
+          padding: 0.75rem 1.25rem;
+          font-size: 0.95rem;
+          background: #4f46e5;
+          color: white;
+          border: none;
+          border-radius: 8px;
+          cursor: pointer;
+          white-space: nowrap;
+          flex-shrink: 0;
+        }
+        .submit-btn:disabled {
+          background: #a5b4fc;
+          cursor: not-allowed;
+        }
+
+        /* Stack vertically on mobile */
+        @media (max-width: 480px) {
+          .form-row    { flex-direction: column; }
+          .submit-btn  { width: 100%; }
+        }
+      `}</style>
+
+      <form className="research-form" onSubmit={handleSubmit}>
+        <div className="form-row">
+          <input
+            className="topic-input"
+            type="text"
+            placeholder="Enter a research topic (e.g. Quantum Computing)"
+            disabled={isLoading}
+            onChange={(e) => { topic = e.target.value; }}
+          />
+          <button
+            className="submit-btn"
+            type="submit"
+            disabled={isLoading}
+          >
+            {isLoading ? "Researching..." : "Research"}
+          </button>
+        </div>
+      </form>
+    </>
   );
 };
